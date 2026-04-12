@@ -409,7 +409,7 @@ export default function NegotiatePage() {
                   }
                   if (data.state.allIssues) {
                     const newResults: Record<string, IssueResult> = {};
-                      data.state.allIssues.forEach((issue: { id: string; status: string; selfGain: number; opponentGain: number }) => {
+                      data.state.allIssues.forEach((issue: { id: string; status: 'pending' | 'discussing' | 'agreed' | 'disputed' | 'deadlock'; selfGain: number; opponentGain: number }) => {
                       newResults[issue.id] = {
                         status: issue.status,
                         selfGain: issue.selfGain,
