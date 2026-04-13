@@ -1,363 +1,161 @@
-# projects
+# 🌍 Diplomatic AI — 外交谈判模拟平台
 
-这是一个基于 [Next.js 16](https://nextjs.org) + [shadcn/ui](https://ui.shadcn.com) 的全栈应用项目，由扣子编程 CLI 创建。
+[![Next.js](https://img.shields.io/badge/Next.js-16.1-black)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2-blue)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38bdf8)](https://tailwindcss.com/)
+[![DeepSeek](https://img.shields.io/badge/AI-DeepSeek-4f46e5)](https://deepseek.com/)
+[![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
 
-## 快速开始
+**Diplomatic AI** 是一个基于大语言模型的**外交谈判模拟与培训平台**。通过 AI 扮演对方谈判代表，结合真实历史案例、国家性格档案和实时策略分析，帮助用户在安全的虚拟环境中练习外交谈判技巧。
 
-### 启动开发服务器
+![平台预览](./public/preview.png)
 
+---
+
+## ✨ 核心功能
+
+### 🤖 智能谈判模拟
+- **双边与多边谈判**：支持 20+ 个现代及历史国家，每个国家都有独特的历史文化背景、性格特征和谈判风格。
+- **AI 对方代表**：由 DeepSeek 大模型驱动，根据国家档案、议题进展和用户态度实时生成外交回应。
+- **议程与状态追踪**：实时显示谈判势头、双方态度变化、突破可能性，并记录每个议题的收益。
+
+### 🎓 三种难度模式
+| 模式 | 特点 |
+|------|------|
+| **新手** | AI 自动代替用户发言，仅在关键决策点暂停让用户选择。 |
+| **进阶** | AI 提供 4 种不同语气的外交回应选项，并附带语言艺术分析。 |
+| **专家** | 完全自主发言，AI 仅提供实时策略建议和局势评估。 |
+
+### 📚 丰富的外交知识库
+- **40+ 历史案例**：包括戴维营协议、古巴导弹危机、英国脱欧谈判等，提供详细的背景、过程和经验教训。
+- **时期适应**：支持冷战、后冷战、当代等多个历史时期，AI 的语言风格和策略会随时期自动调整。
+- **自定义场景**：支持上传自定义谈判背景，AI 自动解析并生成模拟场景。
+
+### 📹 表情与语气分析（可选）
+- 通过摄像头实时捕捉面部表情，调用豆包视觉模型分析情绪状态，辅助用户了解自己在谈判中的表现。
+
+### 📊 训练记录与分析
+- 自动保存每次谈判的完整记录，包括对话历史、关键决策和最终结果。
+- 生成详细的复盘报告，指出优势、不足和改进建议。
+
+---
+
+## 🛠 技术栈
+
+| 类别 | 技术 |
+|------|------|
+| 框架 | Next.js 16 (App Router) |
+| 前端 | React 19, TypeScript, Tailwind CSS 4 |
+| UI 组件 | shadcn/ui (Radix UI) |
+| 动画 | Framer Motion |
+| 表单 | React Hook Form + Zod |
+| 图表 | Recharts |
+| AI 服务 | DeepSeek API (对话) + 豆包视觉 API (情绪分析) |
+| 数据存储 | LocalStorage (训练记录) + PostgreSQL (可选) |
+| 包管理器 | pnpm |
+
+---
+
+## 🚀 快速开始
+
+### 1. 克隆项目
 ```bash
-coze dev
+git clone https://github.com/Steve357h20/diplomago.git
+cd 你的仓库名
 ```
 
-启动后，在浏览器中打开 [http://localhost:5000](http://localhost:5000) 查看应用。
-
-开发服务器支持热更新，修改代码后页面会自动刷新。
-
-### 构建生产版本
-
+### 2. 安装依赖
 ```bash
-coze build
+pnpm install
 ```
 
-### 启动生产服务器
+### 3. 配置环境变量
+在项目根目录创建 `.env.local` 文件，填入以下内容：
+```env
+# DeepSeek API（对话模型）
+DEEPSEEK_API_KEY=sk-your-deepseek-api-key
 
+# 豆包视觉 API（可选，用于表情分析）
+DOUBAO_VISION_API_KEY=your-doubao-api-key
+DOUBAO_VISION_MODEL=your-doubao-model-id
+```
+> 如果不需要表情分析功能，可以留空，系统会自动降级为默认中性评估。
+
+### 4. 启动开发服务器
 ```bash
-coze start
+pnpm dev
+```
+访问 `http://localhost:3000` 即可使用。
+
+---
+
+## 📦 构建与部署
+
+### 本地生产构建
+```bash
+pnpm build
+pnpm start
 ```
 
-## 项目结构
+### 部署到 Vercel
+1. 将项目推送到 GitHub。
+2. 在 [Vercel](https://vercel.com) 中导入该仓库。
+3. 在项目设置中添加与 `.env.local` 相同的环境变量。
+4. 点击 Deploy，完成后即可通过 Vercel 提供的域名访问。
+
+> ⚠️ **注意**：Vercel 免费版的 Serverless Function 超时时间为 10 秒。如果遇到超时错误，建议使用以下方案之一：
+> - 优化 AI 提示词，降低 `max_tokens`。
+> - 使用 [ngrok](https://ngrok.com) 将本地服务暴露到公网（无超时限制）。
+> - 迁移到 [Railway](https://railway.app) 等超时限制更宽松的平台。
+
+---
+
+## 📁 项目结构
 
 ```
 src/
-├── app/                      # Next.js App Router 目录
-│   ├── layout.tsx           # 根布局组件
-│   ├── page.tsx             # 首页
-│   ├── globals.css          # 全局样式（包含 shadcn 主题变量）
-│   └── [route]/             # 其他路由页面
-├── components/              # React 组件目录
-│   └── ui/                  # shadcn/ui 基础组件（优先使用）
-│       ├── button.tsx
-│       ├── card.tsx
-│       └── ...
-├── lib/                     # 工具函数库
-│   └── utils.ts            # cn() 等工具函数
-└── hooks/                   # 自定义 React Hooks（可选）
-
-server/
-├── index.ts                 # 自定义服务器入口
-├── tsconfig.json           # Server TypeScript 配置
-└── dist/                    # 编译输出目录（自动生成）
+├── app/                    # Next.js App Router 页面
+│   ├── api/                # API 路由（对话、分析、生成等）
+│   ├── configure/          # 双边谈判配置页
+│   ├── negotiate/          # 双边谈判主界面
+│   ├── multilateral/       # 多边谈判
+│   ├── analysis/           # 结果分析页
+│   ├── history/            # 训练记录页
+│   └── cases/[id]/         # 历史案例详情页
+├── components/             # React 组件
+│   ├── ai-assistant/       # AI 助手悬浮球
+│   ├── negotiation/        # 谈判对话气泡、议程面板
+│   ├── sentiment/          # 摄像头表情分析
+│   ├── config/             # 配置向导
+│   └── ui/                 # shadcn/ui 基础组件
+├── lib/                    # 业务逻辑与工具库
+│   ├── deepseek.ts         # DeepSeek API 封装
+│   ├── countries.ts        # 国家数据库
+│   ├── case-database.ts    # 历史案例库
+│   ├── training-records.ts # 训练记录管理
+│   └── ...
+└── types/                  # TypeScript 类型定义
 ```
 
-## 核心开发规范
+---
 
-### 1. 组件开发
+## 🤝 贡献
 
-**优先使用 shadcn/ui 基础组件**
+欢迎提交 Issue 和 Pull Request！如果你有任何建议或发现了 bug，请在 GitHub 上告诉我们。
 
-本项目已预装完整的 shadcn/ui 组件库，位于 `src/components/ui/` 目录。开发时应优先使用这些组件作为基础：
+---
 
-```tsx
-// ✅ 推荐：使用 shadcn 基础组件
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+## 📄 许可证
 
-export default function MyComponent() {
-  return (
-    <Card>
-      <CardHeader>标题</CardHeader>
-      <CardContent>
-        <Input placeholder="输入内容" />
-        <Button>提交</Button>
-      </CardContent>
-    </Card>
-  );
-}
+本项目基于 MIT 许可证开源。详情请参阅 [LICENSE](./LICENSE) 文件。
+
+---
+
+## 🙏 致谢
+
+- [DeepSeek](https://deepseek.com/) 提供高质量的对话模型 API。
+- [火山方舟](https://www.volcengine.com/product/ark) 提供豆包视觉模型 API。
+- [shadcn/ui](https://ui.shadcn.com/) 提供优雅的组件库。
+- 项目灵感来源于外交学、国际关系理论以及真实的外交谈判历史。
 ```
 
-**可用的 shadcn 组件清单**
-
-- 表单：`button`, `input`, `textarea`, `select`, `checkbox`, `radio-group`, `switch`, `slider`
-- 布局：`card`, `separator`, `tabs`, `accordion`, `collapsible`, `scroll-area`
-- 反馈：`alert`, `alert-dialog`, `dialog`, `toast`, `sonner`, `progress`
-- 导航：`dropdown-menu`, `menubar`, `navigation-menu`, `context-menu`
-- 数据展示：`table`, `avatar`, `badge`, `hover-card`, `tooltip`, `popover`
-- 其他：`calendar`, `command`, `carousel`, `resizable`, `sidebar`
-
-详见 `src/components/ui/` 目录下的具体组件实现。
-
-### 2. 路由开发
-
-Next.js 使用文件系统路由，在 `src/app/` 目录下创建文件夹即可添加路由：
-
-```bash
-# 创建新路由 /about
-src/app/about/page.tsx
-
-# 创建动态路由 /posts/[id]
-src/app/posts/[id]/page.tsx
-
-# 创建路由组（不影响 URL）
-src/app/(marketing)/about/page.tsx
-
-# 创建 API 路由
-src/app/api/users/route.ts
-```
-
-**页面组件示例**
-
-```tsx
-// src/app/about/page.tsx
-import { Button } from '@/components/ui/button';
-
-export const metadata = {
-  title: '关于我们',
-  description: '关于页面描述',
-};
-
-export default function AboutPage() {
-  return (
-    <div>
-      <h1>关于我们</h1>
-      <Button>了解更多</Button>
-    </div>
-  );
-}
-```
-
-**动态路由示例**
-
-```tsx
-// src/app/posts/[id]/page.tsx
-export default async function PostPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-
-  return <div>文章 ID: {id}</div>;
-}
-```
-
-**API 路由示例**
-
-```tsx
-// src/app/api/users/route.ts
-import { NextResponse } from 'next/server';
-
-export async function GET() {
-  return NextResponse.json({ users: [] });
-}
-
-export async function POST(request: Request) {
-  const body = await request.json();
-  return NextResponse.json({ success: true });
-}
-```
-
-### 3. 依赖管理
-
-**必须使用 pnpm 管理依赖**
-
-```bash
-# ✅ 安装依赖
-pnpm install
-
-# ✅ 添加新依赖
-pnpm add package-name
-
-# ✅ 添加开发依赖
-pnpm add -D package-name
-
-# ❌ 禁止使用 npm 或 yarn
-# npm install  # 错误！
-# yarn add     # 错误！
-```
-
-项目已配置 `preinstall` 脚本，使用其他包管理器会报错。
-
-### 4. 样式开发
-
-**使用 Tailwind CSS v4**
-
-本项目使用 Tailwind CSS v4 进行样式开发，并已配置 shadcn 主题变量。
-
-```tsx
-// 使用 Tailwind 类名
-<div className="flex items-center gap-4 p-4 rounded-lg bg-background">
-  <Button className="bg-primary text-primary-foreground">
-    主要按钮
-  </Button>
-</div>
-
-// 使用 cn() 工具函数合并类名
-import { cn } from '@/lib/utils';
-
-<div className={cn(
-  "base-class",
-  condition && "conditional-class",
-  className
-)}>
-  内容
-</div>
-```
-
-**主题变量**
-
-主题变量定义在 `src/app/globals.css` 中，支持亮色/暗色模式：
-
-- `--background`, `--foreground`
-- `--primary`, `--primary-foreground`
-- `--secondary`, `--secondary-foreground`
-- `--muted`, `--muted-foreground`
-- `--accent`, `--accent-foreground`
-- `--destructive`, `--destructive-foreground`
-- `--border`, `--input`, `--ring`
-
-### 5. 表单开发
-
-推荐使用 `react-hook-form` + `zod` 进行表单开发：
-
-```tsx
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-
-const formSchema = z.object({
-  username: z.string().min(2, '用户名至少 2 个字符'),
-  email: z.string().email('请输入有效的邮箱'),
-});
-
-export default function MyForm() {
-  const form = useForm({
-    resolver: zodResolver(formSchema),
-    defaultValues: { username: '', email: '' },
-  });
-
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    console.log(data);
-  };
-
-  return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
-      <Input {...form.register('username')} />
-      <Input {...form.register('email')} />
-      <Button type="submit">提交</Button>
-    </form>
-  );
-}
-```
-
-### 6. 数据获取
-
-**服务端组件（推荐）**
-
-```tsx
-// src/app/posts/page.tsx
-async function getPosts() {
-  const res = await fetch('https://api.example.com/posts', {
-    cache: 'no-store', // 或 'force-cache'
-  });
-  return res.json();
-}
-
-export default async function PostsPage() {
-  const posts = await getPosts();
-
-  return (
-    <div>
-      {posts.map(post => (
-        <div key={post.id}>{post.title}</div>
-      ))}
-    </div>
-  );
-}
-```
-
-**客户端组件**
-
-```tsx
-'use client';
-
-import { useEffect, useState } from 'react';
-
-export default function ClientComponent() {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    fetch('/api/data')
-      .then(res => res.json())
-      .then(setData);
-  }, []);
-
-  return <div>{JSON.stringify(data)}</div>;
-}
-```
-
-## 常见开发场景
-
-### 添加新页面
-
-1. 在 `src/app/` 下创建文件夹和 `page.tsx`
-2. 使用 shadcn 组件构建 UI
-3. 根据需要添加 `layout.tsx` 和 `loading.tsx`
-
-### 创建业务组件
-
-1. 在 `src/components/` 下创建组件文件（非 UI 组件）
-2. 优先组合使用 `src/components/ui/` 中的基础组件
-3. 使用 TypeScript 定义 Props 类型
-
-### 添加全局状态
-
-推荐使用 React Context 或 Zustand：
-
-```tsx
-// src/lib/store.ts
-import { create } from 'zustand';
-
-interface Store {
-  count: number;
-  increment: () => void;
-}
-
-export const useStore = create<Store>((set) => ({
-  count: 0,
-  increment: () => set((state) => ({ count: state.count + 1 })),
-}));
-```
-
-### 集成数据库
-
-推荐使用 Prisma 或 Drizzle ORM，在 `src/lib/db.ts` 中配置。
-
-## 技术栈
-
-- **框架**: Next.js 16.1.1 (App Router)
-- **UI 组件**: shadcn/ui (基于 Radix UI)
-- **样式**: Tailwind CSS v4
-- **表单**: React Hook Form + Zod
-- **图标**: Lucide React
-- **字体**: Geist Sans & Geist Mono
-- **包管理器**: pnpm 9+
-- **TypeScript**: 5.x
-
-## 参考文档
-
-- [Next.js 官方文档](https://nextjs.org/docs)
-- [shadcn/ui 组件文档](https://ui.shadcn.com)
-- [Tailwind CSS 文档](https://tailwindcss.com/docs)
-- [React Hook Form](https://react-hook-form.com)
-
-## 重要提示
-
-1. **必须使用 pnpm** 作为包管理器
-2. **优先使用 shadcn/ui 组件** 而不是从零开发基础组件
-3. **遵循 Next.js App Router 规范**，正确区分服务端/客户端组件
-4. **使用 TypeScript** 进行类型安全开发
-5. **使用 `@/` 路径别名** 导入模块（已配置）
