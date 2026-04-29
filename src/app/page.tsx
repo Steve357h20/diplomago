@@ -254,12 +254,6 @@ export default function HomePage() {
                 双边谈判
               </Link>
               <Link
-                href="/multilateral/config"
-                className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
-              >
-                多边谈判
-              </Link>
-              <Link
                 href="/history"
                 className="px-4 py-2 text-slate-400 hover:text-white transition-colors flex items-center gap-1.5"
               >

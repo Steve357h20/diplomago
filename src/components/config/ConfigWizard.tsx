@@ -35,6 +35,7 @@ import {
   AlertCircle,
   GripVertical
 } from 'lucide-react';
+import { futureCountries } from '@/lib/future-countries';
 
 interface CustomScenario {
   title: string;
@@ -64,7 +65,7 @@ interface ConfigWizardProps {
   }) => void;
 }
 
-type Step = 'topic' | 'parties' | 'era' | 'difficulty' | 'background' | 'goals' | 'issues' | 'complete';
+type Step = 'topic' | 'parties' | 'era' | 'background' | 'goals' | 'issues' | 'complete';
 type TopicFilter = 'all' | 'modern' | 'cold-war' | 'future';
 
 export default function ConfigWizard({ onComplete }: ConfigWizardProps) {
@@ -73,7 +74,8 @@ export default function ConfigWizard({ onComplete }: ConfigWizardProps) {
   const [selfCountry, setSelfCountry] = useState<string>('');
   const [opponentCountry, setOpponentCountry] = useState<string>('');
   const [opponentPersonality, setOpponentPersonality] = useState<string>('');
-  const [difficulty, setDifficulty] = useState<BilateralDifficulty>('medium');
+  // const [difficulty, setDifficulty] = useState<BilateralDifficulty>('medium');
+  const difficulty: BilateralDifficulty = 'hard';
   const [objectives, setObjectives] = useState<string[]>([]);
   const [newObjective, setNewObjective] = useState('');
   const [customScenario, setCustomScenario] = useState<CustomScenario | null>(null);
@@ -82,6 +84,23 @@ export default function ConfigWizard({ onComplete }: ConfigWizardProps) {
   const [selectedFutureCategory, setSelectedFutureCategory] = useState<string>('all');
   const [showTopicDetails, setShowTopicDetails] = useState<string | null>(null);
   const [selectedEra, setSelectedEra] = useState<HistoricalEra>('modern');
+
+  const [highCaseTitle, setHighCaseTitle] = useState('');
+  const [highCaseDesc, setHighCaseDesc] = useState('');
+  const [middleCaseTitle, setMiddleCaseTitle] = useState('');
+  const [middleCaseDesc, setMiddleCaseDesc] = useState('');
+  const [bottomLineTitle, setBottomLineTitle] = useState('');
+  const [bottomLineDesc, setBottomLineDesc] = useState('');
+
+  const updateHighCase = (title: string, desc: string) => {
+    setHighCase(`${title}\n\n${desc}`);
+  };
+  const updateMiddleCase = (title: string, desc: string) => {
+    setWinWinCase(`${title}\n\n${desc}`);
+  };
+  const updateBottomLine = (title: string, desc: string) => {
+    setBottomLine(`${title}\n\n${desc}`);
+  };
 
   // 背景生成相关状态
   const [generatedBackground, setGeneratedBackground] = useState<GeneratedScenario | null>(null);
@@ -119,7 +138,7 @@ export default function ConfigWizard({ onComplete }: ConfigWizardProps) {
     { key: 'topic', label: '谈判主题' },
     { key: 'parties', label: '参与方' },
     { key: 'era', label: '历史时期' },
-    { key: 'difficulty', label: '难度选择' },
+    // { key: 'difficulty', label: '难度选择' },
     { key: 'background', label: '背景故事' },
     { key: 'goals', label: '目标设定' },
     { key: 'issues', label: '议题顺序' },
@@ -252,6 +271,41 @@ export default function ConfigWizard({ onComplete }: ConfigWizardProps) {
     setObjectives(objectives.filter((_, i) => i !== index));
   };
 
+    // 在 generateBackground 函数附近添加一个生成预设背景的函数
+  const getPresetBackground = () => {
+        if (!selectedTopic || !selfCountry || !opponentCountry) return null;
+
+        const selfName = countries.find(c => c.id === selfCountry)?.name || selfCountry;
+        const opponentName = countries.find(c => c.id === opponentCountry)?.name || opponentCountry;
+
+        return {
+            fullBackground: `【背景概述】
+本次谈判发生在${ERA_CONFIGS.find(e => e.id === selectedEra)?.name || '当代'}。${selfName}与${opponentName}就「${selectedTopic.name}」议题展开外交磋商。
+
+双方在${selectedTopic.keyIssues?.slice(0, 2).join('、') || '相关领域'}存在分歧，但都表达了通过对话解决问题的意愿。本次会谈旨在寻找互利共赢的解决方案，管控分歧，推动双边关系稳定发展。`,
+            background: {
+                historicalContext: `${selfName}与${opponentName}的关系源远流长，在多个领域有着广泛的合作与交流。`,
+                recentEvents: `近期，双方在${selectedTopic.keyIssues?.[0] || '相关议题'}上出现了一些不同看法。`,
+                triggerEvent: `经过多轮工作层面沟通，双方决定举行正式会谈以寻求共识。`,
+                currentStance: {
+                    self: `${selfName}坚持在平等互利基础上通过对话解决分歧。`,
+                    opponent: `${opponentName}表达了通过协商解决问题的意愿。`
+                },
+                currentSituation: '双方代表团已就位，谈判即将开始。'
+            },
+            issues: selectedTopic.keyIssues?.map((title, index) => ({
+                id: `issue-${index + 1}`,
+                title,
+                description: `${title}是本次谈判的关键议题之一。`,
+                controversy: `双方在${title}上存在一定分歧。`,
+                selfPosition: `维护${selfName}的合法利益。`,
+                opponentPosition: `寻求对${opponentName}有利的安排。`,
+                difficulty: index === 0 ? 'medium' : 'easy',
+                importance: 5 - index,
+            })) || []
+        };
+  };
+
   // 生成背景故事
   const generateBackground = async () => {
     if (!selfCountry || !opponentCountry || !selectedTopic) return;
@@ -306,13 +360,13 @@ export default function ConfigWizard({ onComplete }: ConfigWizardProps) {
     setGoalsError(null);
 
     try {
-      const response = await fetch('/api/multilateral/goals', {
+      const response = await fetch('/api/generate-goals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           topic: selectedTopic.name,
           topicDescription: selectedTopic.description || '',
-          background: generatedBackground?.background || '',
+          background: generatedBackground?.fullBackground || '',
           userCountryId: selfCountry,
           opponentCountryIds: opponentCountry ? [opponentCountry] : [],
         })
@@ -320,16 +374,25 @@ export default function ConfigWizard({ onComplete }: ConfigWizardProps) {
 
       const data = await response.json();
       if (data.success && data.goals) {
-        // 提取AI生成的目标
+        const { highGoal, middleGoal, bottomLine } = data.goals;
+      
+        setHighCaseTitle(highGoal.title);
+        setHighCaseDesc(highGoal.description);
+        setHighCase(`${highGoal.title}\n\n${highGoal.description}`);
+      
+        setMiddleCaseTitle(middleGoal.title);
+        setMiddleCaseDesc(middleGoal.description);
+        setWinWinCase(`${middleGoal.title}\n\n${middleGoal.description}`);
+      
+        setBottomLineTitle(bottomLine.title);
+        setBottomLineDesc(bottomLine.description);
+        setBottomLine(`${bottomLine.title}\n\n${bottomLine.description}`);
+      
         setAutoGeneratedGoals({
-          highCase: data.goals.highGoal?.title + '\n\n' + data.goals.highGoal?.description,
-          middleCase: data.goals.middleGoal?.title + '\n\n' + data.goals.middleGoal?.description,
-          bottomLine: data.goals.bottomLine?.title + '\n\n' + data.goals.bottomLine?.description,
+          highCase: `${highGoal.title}\n\n${highGoal.description}`,
+          middleCase: `${middleGoal.title}\n\n${middleGoal.description}`,
+          bottomLine: `${bottomLine.title}\n\n${bottomLine.description}`,
         });
-        // 同时更新表单值
-        setHighCase(data.goals.highGoal?.title + '\n\n' + data.goals.highGoal?.description);
-        setWinWinCase(data.goals.middleGoal?.title + '\n\n' + data.goals.middleGoal?.description);
-        setBottomLine(data.goals.bottomLine?.title + '\n\n' + data.goals.bottomLine?.description);
       } else {
         setGoalsError(data.error || '生成失败');
       }
@@ -942,38 +1005,62 @@ export default function ConfigWizard({ onComplete }: ConfigWizardProps) {
                   )}
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {countries.map((country) => (
-                    <button
-                      key={country.id}
-                      onClick={() => setSelfCountry(country.id)}
-                      className={`p-3 rounded-xl text-left transition-all ${
-                        selfCountry === country.id
-                          ? 'bg-amber-500/20 border border-amber-500'
-                          : 'bg-slate-800/50 border border-slate-700/50 hover:border-slate-600'
-                      }`}
-                    >
-                      <span className="text-xl mr-2">{country.flag}</span>
-                      <span className="text-sm text-slate-300">{country.name}</span>
-                    </button>
-                  ))}
-                  {/* 历史国家 - 如果选择了历史场景 */}
-                  {selectedTopic?.era === 'cold-war' && historicalCountries.map((country) => (
-                    <button
-                      key={country.id}
-                      onClick={() => setSelfCountry(country.id)}
-                      className={`p-3 rounded-xl text-left transition-all ${
-                        selfCountry === country.id
-                          ? 'bg-amber-500/20 border border-amber-500'
-                          : 'bg-slate-800/50 border border-slate-700/50 hover:border-slate-600'
-                      }`}
-                    >
-                      <span className="text-xl mr-2">{country.flag}</span>
-                      <div>
-                        <span className="text-sm text-slate-300 block">{country.name}</span>
-                        <span className="text-xs text-slate-500">{country.existedUntil ? `至${country.existedUntil}` : '历史国家'}</span>
-                      </div>
-                    </button>
-                  ))}
+                                  {/* 根据议题时代优先判断，若议题有时代属性则优先用议题的，否则用选择的时期 */}
+                                  {(() => {
+                                      const effectiveEra = selectedTopic?.era || selectedEra;
+
+                                      if (effectiveEra === 'future') {
+                                          return futureCountries.map((country) => (
+                                              <button
+                                                  key={country.id}
+                                                  onClick={() => setSelfCountry(country.id)}
+                                                  className={`p-3 rounded-xl text-left transition-all ${selfCountry === country.id
+                                                          ? 'bg-amber-500/20 border border-amber-500'
+                                                          : 'bg-slate-800/50 border border-slate-700/50 hover:border-slate-600'
+                                                      }`}
+                                              >
+                                                  <span className="text-xl mr-2">{country.flag}</span>
+                                                  <span className="text-sm text-slate-300">{country.name}</span>
+                                              </button>
+                                          ));
+                                      }
+
+                                      if (effectiveEra?.startsWith('cold-war')) {
+                                          return historicalCountries
+                                              .filter(c => c.era === 'cold-war')
+                                              .map((country) => (
+                                                  <button
+                                                      key={country.id}
+                                                      onClick={() => setSelfCountry(country.id)}
+                                                      className={`p-3 rounded-xl text-left transition-all ${selfCountry === country.id
+                                                              ? 'bg-amber-500/20 border border-amber-500'
+                                                              : 'bg-slate-800/50 border border-slate-700/50 hover:border-slate-600'
+                                                          }`}
+                                                  >
+                                                      <span className="text-xl mr-2">{country.flag}</span>
+                                                      <div>
+                                                          <span className="text-sm text-slate-300 block">{country.name}</span>
+                                                          <span className="text-xs text-slate-500">{country.existedUntil ? `至${country.existedUntil}` : '历史国家'}</span>
+                                                      </div>
+                                                  </button>
+                                              ));
+                                      }
+
+                                      // 默认显示现代国家（包括 modern / post-cold-war / post-2008 等当代时期）
+                                      return countries.map((country) => (
+                                          <button
+                                              key={country.id}
+                                              onClick={() => setSelfCountry(country.id)}
+                                              className={`p-3 rounded-xl text-left transition-all ${selfCountry === country.id
+                                                      ? 'bg-amber-500/20 border border-amber-500'
+                                                      : 'bg-slate-800/50 border border-slate-700/50 hover:border-slate-600'
+                                                  }`}
+                                          >
+                                              <span className="text-xl mr-2">{country.flag}</span>
+                                              <span className="text-sm text-slate-300">{country.name}</span>
+                                          </button>
+                                      ));
+                                  })()}
                 </div>
               </div>
 
@@ -986,44 +1073,65 @@ export default function ConfigWizard({ onComplete }: ConfigWizardProps) {
                   选择对方代表
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-                  {countries.map((country) => (
-                    <button
-                      key={country.id}
-                      onClick={() => setOpponentCountry(country.id)}
-                      disabled={country.id === selfCountry}
-                      className={`p-3 rounded-xl text-left transition-all ${
-                        opponentCountry === country.id
-                          ? 'bg-red-500/20 border border-red-500'
-                          : country.id === selfCountry
-                          ? 'bg-slate-800/30 border border-slate-700/30 opacity-50 cursor-not-allowed'
-                          : 'bg-slate-800/50 border border-slate-700/50 hover:border-slate-600'
-                      }`}
-                    >
-                      <span className="text-xl mr-2">{country.flag}</span>
-                      <span className="text-sm text-slate-300">{country.name}</span>
-                    </button>
-                  ))}
-                  {/* 历史国家 */}
-                  {selectedTopic?.era === 'cold-war' && historicalCountries.map((country) => (
-                    <button
-                      key={country.id}
-                      onClick={() => setOpponentCountry(country.id)}
-                      disabled={country.id === selfCountry}
-                      className={`p-3 rounded-xl text-left transition-all ${
-                        opponentCountry === country.id
-                          ? 'bg-red-500/20 border border-red-500'
-                          : country.id === selfCountry
-                          ? 'bg-slate-800/30 border border-slate-700/30 opacity-50 cursor-not-allowed'
-                          : 'bg-slate-800/50 border border-slate-700/50 hover:border-slate-600'
-                      }`}
-                    >
-                      <span className="text-xl mr-2">{country.flag}</span>
-                      <div>
-                        <span className="text-sm text-slate-300 block">{country.name}</span>
-                        <span className="text-xs text-slate-500">{country.existedUntil ? `至${country.existedUntil}` : '历史国家'}</span>
-                      </div>
-                    </button>
-                  ))}
+                                  {/* 根据议题时代优先判断，若议题有时代属性则优先用议题的，否则用选择的时期 */}
+                                  {(() => {
+                                      const effectiveEra = selectedTopic?.era || selectedEra;
+
+                                      if (effectiveEra === 'future') {
+                                          return futureCountries.map((country) => (
+                                              <button
+                                                  key={country.id}
+                                                  disabled={country.id === selfCountry}
+                                                  onClick={() => setOpponentCountry(country.id)}
+                                                  className={`p-3 rounded-xl text-left transition-all ${opponentCountry === country.id
+                                                          ? 'bg-amber-500/20 border border-amber-500'
+                                                          : 'bg-slate-800/50 border border-slate-700/50 hover:border-slate-600'
+                                                      }`}
+                                              >
+                                                  <span className="text-xl mr-2">{country.flag}</span>
+                                                  <span className="text-sm text-slate-300">{country.name}</span>
+                                              </button>
+                                          ));
+                                      }
+
+                                      if (effectiveEra?.startsWith('cold-war')) {
+                                          return historicalCountries
+                                              .filter(c => c.era === 'cold-war')
+                                              .map((country) => (
+                                                  <button
+                                                      key={country.id}
+                                                      onClick={() => setOpponentCountry(country.id)}
+                                                      disabled={country.id === selfCountry}
+                                                      className={`p-3 rounded-xl text-left transition-all ${opponentCountry === country.id
+                                                              ? 'bg-amber-500/20 border border-amber-500'
+                                                              : 'bg-slate-800/50 border border-slate-700/50 hover:border-slate-600'
+                                                          }`}
+                                                  >
+                                                      <span className="text-xl mr-2">{country.flag}</span>
+                                                      <div>
+                                                          <span className="text-sm text-slate-300 block">{country.name}</span>
+                                                          <span className="text-xs text-slate-500">{country.existedUntil ? `至${country.existedUntil}` : '历史国家'}</span>
+                                                      </div>
+                                                  </button>
+                                              ));
+                                      }
+
+                                      // 默认显示现代国家（包括 modern / post-cold-war / post-2008 等当代时期）
+                                      return countries.map((country) => (
+                                          <button
+                                              key={country.id}
+                                              onClick={() => setOpponentCountry(country.id)}
+                                              disabled={country.id === selfCountry}
+                                              className={`p-3 rounded-xl text-left transition-all ${opponentCountry === country.id
+                                                      ? 'bg-amber-500/20 border border-amber-500'
+                                                      : 'bg-slate-800/50 border border-slate-700/50 hover:border-slate-600'
+                                                  }`}
+                                          >
+                                              <span className="text-xl mr-2">{country.flag}</span>
+                                              <span className="text-sm text-slate-300">{country.name}</span>
+                                          </button>
+                                      ));
+                                  })()}
                 </div>
 
                 {/* 性格预设 */}
@@ -1045,109 +1153,6 @@ export default function ConfigWizard({ onComplete }: ConfigWizardProps) {
                     ))}
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* 步骤3: 难度选择 */}
-          {currentStep === 'difficulty' && (
-            <motion.div
-              key="difficulty"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
-            >
-              <div className="text-center mb-8">
-                <h2 className="text-xl font-semibold text-white mb-2 flex items-center justify-center gap-2">
-                  <Sparkles className="w-5 h-5 text-amber-400" />
-                  选择训练难度
-                </h2>
-                <p className="text-sm text-slate-500">
-                  不同难度下AI将提供不同程度的辅助，选择适合您的训练模式
-                </p>
-              </div>
-
-              <div className="grid gap-4">
-                {(['easy', 'medium', 'hard'] as BilateralDifficulty[]).map((diff) => {
-                  const desc = DIFFICULTY_DESCRIPTIONS[diff];
-                  return (
-                    <button
-                      key={diff}
-                      onClick={() => setDifficulty(diff)}
-                      className={`p-6 rounded-2xl border-2 text-left transition-all ${
-                        difficulty === diff
-                          ? diff === 'easy'
-                            ? 'bg-green-500/10 border-green-500'
-                            : diff === 'medium'
-                            ? 'bg-amber-500/10 border-amber-500'
-                            : 'bg-red-500/10 border-red-500'
-                          : 'bg-slate-900/50 border-slate-700/50 hover:border-slate-600'
-                      }`}
-                    >
-                      <div className="flex items-start gap-4">
-                        <span className="text-3xl">{desc.icon}</span>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className={`text-lg font-semibold ${
-                              difficulty === diff
-                                ? diff === 'easy'
-                                  ? 'text-green-400'
-                                  : diff === 'medium'
-                                  ? 'text-amber-400'
-                                  : 'text-red-400'
-                                : 'text-white'
-                            }`}>
-                              {desc.title}
-                            </h3>
-                            {difficulty === diff && (
-                              <span className="flex items-center gap-1 text-xs">
-                                <Check className="w-4 h-4" />
-                                已选择
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-slate-400">{desc.description}</p>
-                          
-                          {/* 难度特点标签 */}
-                          <div className="flex flex-wrap gap-2 mt-3">
-                            {diff === 'easy' && (
-                              <>
-                                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">AI辅助对话</span>
-                                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">关键决策暂停</span>
-                                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">表达选项</span>
-                              </>
-                            )}
-                            {diff === 'medium' && (
-                              <>
-                                <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full">外交表达选项</span>
-                                <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full">方案建议</span>
-                                <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full">策略提示</span>
-                              </>
-                            )}
-                            {diff === 'hard' && (
-                              <>
-                                <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">完全自主</span>
-                                <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">实时分析</span>
-                                <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">无AI选项</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* 难度对比提示 */}
-              <div className="bg-slate-800/50 rounded-xl p-4 mt-4">
-                <h4 className="text-sm font-medium text-slate-300 mb-2">难度说明</h4>
-                <ul className="text-xs text-slate-400 space-y-1">
-                  <li>• <span className="text-green-400">入门</span>：AI将自动处理对话，只在重要决策点暂停让您选择</li>
-                  <li>• <span className="text-amber-400">进阶</span>：AI提供表达选项和方案建议，辅助您做出更好的决策</li>
-                  <li>• <span className="text-red-400">专家</span>：完全自主谈判，AI仅提供实时分析和建议</li>
-                </ul>
               </div>
             </motion.div>
           )}
@@ -1389,496 +1394,177 @@ export default function ConfigWizard({ onComplete }: ConfigWizardProps) {
 
           {/* 步骤5: 设定目标 */}
           {currentStep === 'goals' && (
-            <motion.div
-              key="goals"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-8"
-            >
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-semibold text-white mb-2 flex items-center justify-center gap-2">
-                  <Target className="w-5 h-5 text-amber-400" />
-                  设定谈判目标
-                </h2>
-                <p className="text-sm text-slate-500">
-                  {difficulty === 'easy' ? 'AI将根据您的国家和议题自动生成三个方案' :
-                   difficulty === 'medium' ? 'AI将生成多个方案供您选择高案、中间方案和底案' :
-                   '明确您的理想目标、可接受的底线，以及期望达成的共赢方案'}
-                </p>
+  <motion.div
+    key="goals"
+    initial={{ opacity: 0, x: 20 }}
+    animate={{ opacity: 1, x: 0 }}
+    exit={{ opacity: 0, x: -20 }}
+    className="space-y-8"
+  >
+    <div className="text-center mb-6">
+      <h2 className="text-xl font-semibold text-white mb-2 flex items-center justify-center gap-2">
+        <Target className="w-5 h-5 text-amber-400" />
+        设定谈判目标
+      </h2>
+      <p className="text-sm text-slate-500">
+        AI 将根据您的国家和议题自动生成三个方案，您可以编辑调整
+      </p>
+    </div>
+
+    {!autoGeneratedGoals ? (
+      <div className="space-y-6">
+        {/* 说明卡片 */}
+        <div className="bg-slate-900/50 rounded-2xl border border-slate-700/50 p-6">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <h4 className="text-white font-medium mb-2">什么是高案、中间方案和底案？</h4>
+              <div className="space-y-2 text-sm text-slate-400">
+                <p><span className="text-green-400 font-medium">高案</span>：您的理想目标，代表最有利的结果。</p>
+                <p><span className="text-blue-400 font-medium">中间方案</span>：务实可行的选择，平衡各方利益。</p>
+                <p><span className="text-red-400 font-medium">底案</span>：您的最低可接受条件，是谈判底线。</p>
               </div>
+            </div>
+          </div>
+        </div>
 
-              {/* 新手模式：AI生成目标 */}
-              {difficulty === 'easy' && (
-                <div className="space-y-6">
-                  {!autoGeneratedGoals ? (
-                    <div className="space-y-6">
-                      {/* 说明卡片 */}
-                      <div className="bg-slate-900/50 rounded-2xl border border-slate-700/50 p-6">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-                            <Sparkles className="w-5 h-5 text-amber-400" />
-                          </div>
-                          <div>
-                            <h4 className="text-white font-medium mb-2">什么是高案、中间方案和底案？</h4>
-                            <div className="space-y-2 text-sm text-slate-400">
-                              <p>
-                                <span className="text-green-400 font-medium">高案</span>：您在谈判中的理想目标，代表最有利的结果。
-                              </p>
-                              <p>
-                                <span className="text-blue-400 font-medium">中间方案</span>：务实可行的务实选择，是平衡各方利益的方案。
-                              </p>
-                              <p>
-                                <span className="text-red-400 font-medium">底案</span>：您可以接受的最低条件，是谈判的底线。
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* AI生成按钮 */}
-                      <button
-                        onClick={generateGoals}
-                        disabled={isGeneratingGoals || !selfCountry || !selectedTopic}
-                        className="w-full px-8 py-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl transition-all flex items-center justify-center gap-2 mx-auto shadow-lg shadow-green-500/25"
-                      >
-                        {isGeneratingGoals ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            AI正在分析并生成目标...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-5 h-5" />
-                            AI一键生成谈判目标
-                          </>
-                        )}
-                      </button>
-
-                      {goalsError && (
-                        <p className="text-red-400 text-sm text-center">{goalsError}</p>
-                      )}
-
-                      {/* 如果不想使用AI生成，可以手动输入 */}
-                      <div className="text-center">
-                        <button
-                          onClick={() => setAutoGeneratedGoals({ highCase: '', middleCase: '', bottomLine: '' })}
-                          className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
-                        >
-                          不想使用AI生成？手动输入 →
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {/* 已生成的目标预览 */}
-                      <div className="bg-green-900/20 rounded-2xl border border-green-700/30 p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <Check className="w-5 h-5 text-green-400" />
-                            <span className="text-green-400 font-medium">AI目标已生成</span>
-                          </div>
-                          <button
-                            onClick={() => setAutoGeneratedGoals(null)}
-                            className="text-sm text-slate-400 hover:text-slate-300 flex items-center gap-1"
-                          >
-                            <RefreshCw className="w-4 h-4" />
-                            重新生成
-                          </button>
-                        </div>
-
-                        {/* 高案 */}
-                        <div className="mb-4 p-4 rounded-xl bg-green-900/20 border border-green-700/30">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="px-2 py-0.5 rounded text-xs bg-green-500/20 text-green-400">高案</span>
-                            <span className="text-xs text-slate-400">理想目标</span>
-                          </div>
-                          <div className="text-sm text-slate-300 whitespace-pre-wrap">{autoGeneratedGoals.highCase || highCase}</div>
-                        </div>
-
-                        {/* 中间方案 */}
-                        <div className="mb-4 p-4 rounded-xl bg-blue-900/20 border border-blue-700/30">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="px-2 py-0.5 rounded text-xs bg-blue-500/20 text-blue-400">中间</span>
-                            <span className="text-xs text-slate-400">务实选择</span>
-                          </div>
-                          <div className="text-sm text-slate-300 whitespace-pre-wrap">{autoGeneratedGoals.middleCase || winWinCase}</div>
-                        </div>
-
-                        {/* 底案 */}
-                        <div className="p-4 rounded-xl bg-red-900/20 border border-red-700/30">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="px-2 py-0.5 rounded text-xs bg-red-500/20 text-red-400">底案</span>
-                            <span className="text-xs text-slate-400">最低可接受</span>
-                          </div>
-                          <div className="text-sm text-slate-300 whitespace-pre-wrap">{autoGeneratedGoals.bottomLine || bottomLine}</div>
-                        </div>
-                      </div>
-
-                      {/* 编辑功能 */}
-                      <div className="space-y-4">
-                        <p className="text-sm text-slate-500 text-center">您可以手动编辑以下内容进行微调</p>
-
-                        {/* 高案编辑 */}
-                        <div className="bg-gradient-to-br from-green-900/30 to-green-900/10 rounded-2xl border border-green-700/30 p-6">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                              <span className="text-green-400 text-lg">🎯</span>
-                            </div>
-                            <div>
-                              <h3 className="text-white font-medium">高案（理想目标）</h3>
-                              <p className="text-xs text-slate-400">您最希望达成的结果</p>
-                            </div>
-                          </div>
-                          <textarea
-                            value={highCase}
-                            onChange={(e) => {
-                              setHighCase(e.target.value);
-                              setAutoGeneratedGoals(prev => prev ? { ...prev, highCase: e.target.value } : null);
-                            }}
-                            placeholder="描述您希望达成的理想结果..."
-                            rows={3}
-                            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-green-500/50 resize-none"
-                          />
-                        </div>
-
-                        {/* 中间方案编辑 */}
-                        <div className="bg-gradient-to-br from-blue-900/30 to-blue-900/10 rounded-2xl border border-blue-700/30 p-6">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                              <span className="text-blue-400 text-lg">🤝</span>
-                            </div>
-                            <div>
-                              <h3 className="text-white font-medium">中间方案（务实选择）</h3>
-                              <p className="text-xs text-slate-400">平衡各方利益的务实方案</p>
-                            </div>
-                          </div>
-                          <textarea
-                            value={winWinCase}
-                            onChange={(e) => {
-                              setWinWinCase(e.target.value);
-                              setAutoGeneratedGoals(prev => prev ? { ...prev, middleCase: e.target.value } : null);
-                            }}
-                            placeholder="描述一个务实可行的方案..."
-                            rows={3}
-                            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 resize-none"
-                          />
-                        </div>
-
-                        {/* 底案编辑 */}
-                        <div className="bg-gradient-to-br from-red-900/30 to-red-900/10 rounded-2xl border border-red-700/30 p-6">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
-                              <span className="text-red-400 text-lg">🔴</span>
-                            </div>
-                            <div>
-                              <h3 className="text-white font-medium">底案（最低底线）</h3>
-                              <p className="text-xs text-slate-400">您能接受的最低限度</p>
-                            </div>
-                          </div>
-                          <textarea
-                            value={bottomLine}
-                            onChange={(e) => {
-                              setBottomLine(e.target.value);
-                              setAutoGeneratedGoals(prev => prev ? { ...prev, bottomLine: e.target.value } : null);
-                            }}
-                            placeholder="描述您的底线，不能让步的条件..."
-                            rows={3}
-                            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-red-500/50 resize-none"
-                          />
-                          <div className="mt-3 flex items-start gap-2 text-xs text-slate-400">
-                            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                            <p>底线是您必须守护的核心利益，谈判中不应轻易让步</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 进阶模式：多方案选择 */}
-              {difficulty === 'medium' && (
-                <div className="space-y-6">
-                  {proposals.length === 0 ? (
-                    <div className="space-y-6">
-                      {/* 说明卡片 */}
-                      <div className="bg-slate-900/50 rounded-2xl border border-slate-700/50 p-6">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-                            <Sparkles className="w-5 h-5 text-amber-400" />
-                          </div>
-                          <div>
-                            <h4 className="text-white font-medium mb-2">选择您的谈判方案</h4>
-                            <div className="space-y-2 text-sm text-slate-400">
-                              <p>
-                                AI将生成<span className="text-amber-400 font-medium">5个</span>不同的谈判方案，每个方案都标注了优缺点和实现难度。
-                              </p>
-                              <p>
-                                请从中选择一个作为您的<span className="text-green-400 font-medium">高案</span>（理想目标）、
-                                一个作为<span className="text-blue-400 font-medium">中间方案</span>（务实选择）、
-                                一个作为<span className="text-red-400 font-medium">底案</span>（最低可接受）。
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* AI生成按钮 */}
-                      <button
-                        onClick={generateProposals}
-                        disabled={isGeneratingProposals || !selfCountry || !selectedTopic}
-                        className="w-full px-8 py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl transition-all flex items-center justify-center gap-2 mx-auto shadow-lg shadow-amber-500/25"
-                      >
-                        {isGeneratingProposals ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            AI正在分析并生成方案...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-5 h-5" />
-                            生成5个谈判方案选项
-                          </>
-                        )}
-                      </button>
-
-                      {proposalsError && (
-                        <p className="text-red-400 text-sm text-center">{proposalsError}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {/* 方案列表 */}
-                      <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                        {proposals.map((proposal, index) => (
-                          <div
-                            key={proposal.id}
-                            className={`p-5 rounded-xl border transition-all cursor-pointer ${
-                              selectedHighProposal === proposal.id || selectedMiddleProposal === proposal.id || selectedBottomLineProposal === proposal.id
-                                ? 'border-amber-500 bg-amber-500/10'
-                                : 'border-slate-700/50 hover:border-slate-600'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <span className="w-6 h-6 rounded-full bg-slate-700 text-slate-300 text-xs font-medium flex items-center justify-center">
-                                  {index + 1}
-                                </span>
-                                <h4 className="text-white font-medium">{proposal.title}</h4>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-0.5 rounded text-xs ${
-                                  proposal.difficulty === 'low' ? 'bg-green-500/20 text-green-400' :
-                                  proposal.difficulty === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                                  'bg-red-500/20 text-red-400'
-                                }`}>
-                                  达成难度: {proposal.difficulty === 'low' ? '低' : proposal.difficulty === 'medium' ? '中' : '高'}
-                                </span>
-                                <span className="px-2 py-0.5 rounded text-xs bg-slate-700/50 text-slate-400">
-                                  预估接受率: {proposal.estimatedAcceptance}%
-                                </span>
-                              </div>
-                            </div>
-                            
-                            <p className="text-sm text-slate-400 mb-3">{proposal.description}</p>
-                            
-                            {/* 优点 */}
-                            <div className="mb-2">
-                              <div className="text-xs text-green-400 mb-1 flex items-center gap-1">
-                                <span>✓</span> 优点
-                              </div>
-                              <ul className="text-xs text-slate-400 space-y-1">
-                                {proposal.pros.slice(0, 2).map((p: string, i: number) => (
-                                  <li key={i} className="flex items-start gap-1">
-                                    <span className="text-green-400">•</span> {p}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                            
-                            {/* 缺点 */}
-                            <div className="mb-3">
-                              <div className="text-xs text-red-400 mb-1 flex items-center gap-1">
-                                <span>✗</span> 缺点/风险
-                              </div>
-                              <ul className="text-xs text-slate-400 space-y-1">
-                                {proposal.cons.slice(0, 2).map((c: string, i: number) => (
-                                  <li key={i} className="flex items-start gap-1">
-                                    <span className="text-red-400">•</span> {c}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                            
-                            {/* 选择按钮 */}
-                            <div className="flex gap-2 flex-wrap pt-2 border-t border-slate-700/30">
-                              <button
-                                onClick={() => {
-                                  setSelectedHighProposal(proposal.id);
-                                  if (selectedMiddleProposal === proposal.id) setSelectedMiddleProposal(null);
-                                  if (selectedBottomLineProposal === proposal.id) setSelectedBottomLineProposal(null);
-                                  // 同步内容到高案文本域
-                                  setHighCase(`${proposal.title}\n\n${proposal.description}`);
-                                }}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                  selectedHighProposal === proposal.id
-                                    ? 'bg-green-500 text-white'
-                                    : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600'
-                                }`}
-                              >
-                                {selectedHighProposal === proposal.id ? '✓ 高案已选' : '设为高案'}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedMiddleProposal(proposal.id);
-                                  if (selectedHighProposal === proposal.id) setSelectedHighProposal(null);
-                                  if (selectedBottomLineProposal === proposal.id) setSelectedBottomLineProposal(null);
-                                }}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                  selectedMiddleProposal === proposal.id
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600'
-                                }`}
-                              >
-                                {selectedMiddleProposal === proposal.id ? '✓ 中间已选' : '设为中间'}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedBottomLineProposal(proposal.id);
-                                  if (selectedHighProposal === proposal.id) setSelectedHighProposal(null);
-                                  if (selectedMiddleProposal === proposal.id) setSelectedMiddleProposal(null);
-                                }}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                  selectedBottomLineProposal === proposal.id
-                                    ? 'bg-red-500 text-white'
-                                    : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600'
-                                }`}
-                              >
-                                {selectedBottomLineProposal === proposal.id ? '✓ 底案已选' : '设为底案'}
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {/* 已选方案预览 */}
-                      {selectedHighProposal && selectedMiddleProposal && selectedBottomLineProposal && (
-                        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                          <div className="text-xs text-amber-400 mb-3 font-medium">您已选择的方案</div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div className="p-3 rounded-lg bg-green-900/20 border border-green-700/30">
-                              <div className="text-xs text-green-400 mb-1">高案（理想目标）</div>
-                              <div className="text-sm text-white">
-                                {proposals.find(p => p.id === selectedHighProposal)?.title}
-                              </div>
-                            </div>
-                            <div className="p-3 rounded-lg bg-blue-900/20 border border-blue-700/30">
-                              <div className="text-xs text-blue-400 mb-1">中间方案（务实选择）</div>
-                              <div className="text-sm text-white">
-                                {proposals.find(p => p.id === selectedMiddleProposal)?.title}
-                              </div>
-                            </div>
-                            <div className="p-3 rounded-lg bg-red-900/20 border border-red-700/30">
-                              <div className="text-xs text-red-400 mb-1">底案（最低可接受）</div>
-                              <div className="text-sm text-white">
-                                {proposals.find(p => p.id === selectedBottomLineProposal)?.title}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* 重新生成按钮 */}
-                      <div className="flex justify-center">
-                        <button
-                          onClick={() => {
-                            setProposals([]);
-                            setSelectedHighProposal(null);
-                            setSelectedMiddleProposal(null);
-                            setSelectedBottomLineProposal(null);
-                          }}
-                          className="text-sm text-slate-400 hover:text-slate-300 flex items-center gap-1"
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                          重新生成方案
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 专家模式：手动输入 */}
-              {difficulty === 'hard' && (
-                <div className="space-y-6">
-                  {/* 高案 */}
-                  <div className="bg-gradient-to-br from-green-900/30 to-green-900/10 rounded-2xl border border-green-700/30 p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                        <span className="text-green-400 text-lg">🎯</span>
-                      </div>
-                      <div>
-                        <h3 className="text-white font-medium">高案（理想目标）</h3>
-                        <p className="text-xs text-slate-400">您最希望达成的结果</p>
-                      </div>
-                    </div>
-                    <textarea
-                      value={highCase}
-                      onChange={(e) => setHighCase(e.target.value)}
-                      placeholder="描述您希望达成的理想结果..."
-                      rows={3}
-                      className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-green-500/50 resize-none"
-                    />
-                  </div>
-
-                  {/* 共赢案 */}
-                  <div className="bg-gradient-to-br from-blue-900/30 to-blue-900/10 rounded-2xl border border-blue-700/30 p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                        <span className="text-blue-400 text-lg">🤝</span>
-                      </div>
-                      <div>
-                        <h3 className="text-white font-medium">中间方案（务实选择）</h3>
-                        <p className="text-xs text-slate-400">平衡各方利益的务实方案</p>
-                      </div>
-                    </div>
-                    <textarea
-                      value={winWinCase}
-                      onChange={(e) => setWinWinCase(e.target.value)}
-                      placeholder="描述一个务实可行的方案..."
-                      rows={3}
-                      className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 resize-none"
-                    />
-                  </div>
-
-                  {/* 底案 */}
-                  <div className="bg-gradient-to-br from-red-900/30 to-red-900/10 rounded-2xl border border-red-700/30 p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
-                        <span className="text-red-400 text-lg">🔴</span>
-                      </div>
-                      <div>
-                        <h3 className="text-white font-medium">底案（最低底线）</h3>
-                        <p className="text-xs text-slate-400">您能接受的最低限度</p>
-                      </div>
-                    </div>
-                    <textarea
-                      value={bottomLine}
-                      onChange={(e) => setBottomLine(e.target.value)}
-                      placeholder="描述您的底线，不能让步的条件..."
-                      rows={3}
-                      className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-red-500/50 resize-none"
-                    />
-                    <div className="mt-3 flex items-start gap-2 text-xs text-slate-400">
-                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                      <p>底线是您必须守护的核心利益，谈判中不应轻易让步</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </motion.div>
+        {/* AI生成按钮 */}
+        <button
+          onClick={generateGoals}
+          disabled={isGeneratingGoals || !selfCountry || !selectedTopic}
+          className="w-full px-8 py-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl transition-all flex items-center justify-center gap-2 mx-auto shadow-lg shadow-green-500/25"
+        >
+          {isGeneratingGoals ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              AI 正在分析并生成目标...
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-5 h-5" />
+              AI 一键生成谈判目标
+            </>
           )}
+        </button>
+
+        {goalsError && <p className="text-red-400 text-sm text-center">{goalsError}</p>}
+
+        <div className="text-center">
+          <button
+            onClick={() => setAutoGeneratedGoals({ highCase: '', middleCase: '', bottomLine: '' })}
+            className="text-sm text-slate-500 hover:text-slate-300"
+          >
+            不想使用 AI 生成？手动输入 →
+          </button>
+        </div>
+      </div>
+    ) : (
+      <div className="space-y-6">
+        {/* 已生成的目标预览 + 编辑 */}
+        <div className="bg-green-900/20 rounded-2xl border border-green-700/30 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Check className="w-5 h-5 text-green-400" />
+              <span className="text-green-400 font-medium">AI 目标已生成</span>
+            </div>
+            <button
+              onClick={() => setAutoGeneratedGoals(null)}
+              className="text-sm text-slate-400 hover:text-slate-300 flex items-center gap-1"
+            >
+              <RefreshCw className="w-4 h-4" />
+              重新生成
+            </button>
+          </div>
+
+          {/* 高案编辑 */}
+          <div className="mb-4 p-4 rounded-xl bg-green-900/20 border border-green-700/30">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="px-2 py-0.5 rounded text-xs bg-green-500/20 text-green-400">高案</span>
+              <span className="text-xs text-slate-400">理想目标</span>
+            </div>
+            <input
+              type="text"
+              value={highCaseTitle}
+              onChange={(e) => {
+                setHighCaseTitle(e.target.value);
+                updateHighCase(e.target.value, highCaseDesc);
+              }}
+              placeholder="标题"
+              className="w-full mb-2 px-3 py-2 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white text-sm"
+            />
+            <textarea
+              value={highCaseDesc}
+              onChange={(e) => {
+                setHighCaseDesc(e.target.value);
+                updateHighCase(highCaseTitle, e.target.value);
+              }}
+              rows={3}
+              className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-green-500/50 resize-none"
+            />
+          </div>
+
+          {/* 中间方案编辑 */}
+          <div className="mb-4 p-4 rounded-xl bg-blue-900/20 border border-blue-700/30">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="px-2 py-0.5 rounded text-xs bg-blue-500/20 text-blue-400">中间</span>
+              <span className="text-xs text-slate-400">务实选择</span>
+            </div>
+            <input
+              type="text"
+              value={middleCaseTitle}
+              onChange={(e) => {
+                setMiddleCaseTitle(e.target.value);
+                updateMiddleCase(e.target.value, middleCaseDesc);
+              }}
+              className="w-full mb-2 px-3 py-2 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white text-sm"
+            />
+            <textarea
+              value={middleCaseDesc}
+              onChange={(e) => {
+                setMiddleCaseDesc(e.target.value);
+                updateMiddleCase(middleCaseTitle, e.target.value);
+              }}
+              rows={3}
+              className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 resize-none"
+            />
+          </div>
+
+          {/* 底案编辑 */}
+          <div className="p-4 rounded-xl bg-red-900/20 border border-red-700/30">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="px-2 py-0.5 rounded text-xs bg-red-500/20 text-red-400">底案</span>
+              <span className="text-xs text-slate-400">最低可接受</span>
+            </div>
+            <input
+              type="text"
+              value={bottomLineTitle}
+              onChange={(e) => {
+                setBottomLineTitle(e.target.value);
+                updateBottomLine(e.target.value, bottomLineDesc);
+              }}
+              className="w-full mb-2 px-3 py-2 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white text-sm"
+            />
+            <textarea
+              value={bottomLineDesc}
+              onChange={(e) => {
+                setBottomLineDesc(e.target.value);
+                updateBottomLine(bottomLineTitle, e.target.value);
+              }}
+              rows={3}
+              className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-red-500/50 resize-none"
+            />
+            <div className="mt-3 flex items-start gap-2 text-xs text-slate-400">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <p>底线是您必须守护的核心利益，谈判中不应轻易让步</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+  </motion.div>
+)}
 
           {/* 步骤6: 议题顺序 */}
           {currentStep === 'issues' && (

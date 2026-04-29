@@ -64,56 +64,87 @@ ${opponent.vulnerabilities?.map((v: string) => `- ${v}`).join('\n') || '- 国内
 `;
 }
 
+// 新增：构建当前议题状态文本
+function buildCurrentIssueContext(issues: any[], currentIndex: number, goals?: any) {
+    if (!issues || issues.length === 0) return '';
+    const issue = issues[currentIndex];
+    if (!issue) return '';
+
+    return `
+## 当前议题（第 ${currentIndex + 1}/${issues.length} 个）
+【议题名称】${issue.title}
+【争议焦点】${issue.controversy || '待明确'}
+【己方立场】${issue.selfPosition || '待表达'}
+【对方立场】${issue.opponentPosition || '待明确'}
+【当前状态】${issue.status || '讨论中'}
+【讨论轮数】${issue.discussionTurns || 0}
+
+${goals ? `
+【己方谈判目标】
+- 高案：${goals.highCase}
+- 中间方案：${goals.winWinCase}
+- 底案：${goals.bottomLine}
+` : ''}
+`;
+}
+
 export async function POST(request: NextRequest) {
     try {
-        const { message, context, sentiment, history } = await request.json();
+        const {
+            message,
+            context,
+            sentiment,
+            history,
+            goals,
+            issues,              // 新增
+            currentIssueIndex    // 新增
+        } = await request.json();
 
-        // 格式化案例列表给AI参考
-        const caseList = availableCases.map(c =>
-            `- ${c.id}: ${c.name} (${c.year}) - ${c.topic}`
-        ).join('\n');
+        const backgroundText = context?.background?.fullBackground || '';
+        const caseList = availableCases.map(c => `- ${c.id}: ${c.name} (${c.year}) - ${c.topic}`).join('\n');
+        const goalsText = goals ? `
+## 对方谈判目标（仅供参考）
+- 高案：${goals.highCase || '未设定'}
+- 中间方案：${goals.winWinCase || '未设定'}
+- 底案：${goals.bottomLine || '未设定'}
+` : '';
 
-        // 构建专业的外交谈判系统提示词
+        const currentIssueContext = buildCurrentIssueContext(issues, currentIssueIndex, goals);
+
         const systemPrompt = `你是外交谈判模拟AI，扮演对方谈判队的核心发言人。
 
 ## 核心原则
-1. 严格按照议程顺序推进，不跳题
-2. 每次发言推进议题，不能原地踏步
-3. 用专业外交语言表达
-4. 展现对方的核心利益和关切
-5. 不要重复之前说过的话
-6. 当出现僵局时，提出具体方案打破僵局
+1. **严格按议程顺序推进**，每个议题必须彻底解决（达成共识或明确搁置）后才能进入下一议题。
+2. **当用户明确提出接受方案或达成一致时，必须承认共识并主动结束当前议题**，不可继续纠缠。
+3. **当议题讨论超过4轮仍未进展时，主动提议暂时搁置或提出折中方案**。
+4. 用专业外交语言表达，避免情绪化反驳。
+5. 根据对手档案调整策略，但以促成协议为最终目标。
 
 ${context?.parties?.opponent ? buildOpponentProfile(context.parties.opponent) : ''}
 
-## 谈判议题
-- 主题：${context?.topic?.name || '未指定'}
-- 关键议题：${context?.topic?.keyIssues?.join('、') || '未指定'}
+## 谈判背景
+${backgroundText}
+
+${goalsText}
+
+${currentIssueContext}
 
 ## 参考案例
 ${caseList}
 
-## 你的回复要求
-1. 长度适中（80-200字），模拟真实谈判节奏
-2. 聚焦当前议题，提出具体观点
-3. 展现角色的专业性和人情味
-4. 在合适时机提出方案或反建议
-5. 根据对手的性格特征调整语气和策略
+## 回复要求
+1. 长度适中（30-100字）
+2. 若用户表达接受/同意，明确回应“我方注意到贵方的积极态度，同意就此议题达成一致”并转入下一议题。
+3. 若陷入僵局，可提议：“看来双方在此议题上分歧较大，不妨暂时搁置，先讨论下一议题？”
+4. 避免为反驳而反驳，以推动议程为首要目标。
 
-## 议程推进规则
-- 如果当前议题讨论超过3轮仍未达成，需要提出新的推动方案
-- 不要总是在中立立场徘徊，要有明确的立场推进
-- 当对方做出让步时，适当给予正面回应
-- 当对方施压时，坚定维护核心利益但保持对话
-
-现在开始谈判对话。请用符合角色设定的方式进行谈判。`;
+现在开始谈判对话。`;
 
         // 构建消息历史
         const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
             { role: "system", content: systemPrompt },
         ];
 
-        // 添加历史消息（最近8条）
         const recentHistory = history?.slice(-8) || [];
         recentHistory.forEach((msg: { role: string; content: string }) => {
             messages.push({
@@ -122,14 +153,34 @@ ${caseList}
             });
         });
 
-        // 添加当前用户消息
         let userMessage = message;
         if (sentiment) {
             userMessage = `${message}\n\n[用户情绪分析：${sentiment.emotion}，置信度${(sentiment.confidence * 100).toFixed(0)}%，强度${sentiment.intensity}]`;
         }
         messages.push({ role: "user", content: userMessage });
 
-        // 使用流式响应
+        // 用于流式响应后计算议题状态（简单规则示例，可根据实际需求增强）
+        let updatedIssues = issues ? [...issues] : [];
+        let newCurrentIndex = currentIssueIndex;
+
+        // 简单判断用户消息是否表示接受（关键词）
+        const acceptKeywords = ['接受', '同意', '认可', '就这么办', '达成一致', '没问题', '可以接受'];
+        const userAccepts = acceptKeywords.some(kw => message.includes(kw));
+
+        if (userAccepts && issues && currentIssueIndex < issues.length) {
+            updatedIssues[currentIssueIndex] = {
+                ...updatedIssues[currentIssueIndex],
+                status: 'agreed',
+                selfGain: 50, // 可更精细计算
+                opponentGain: 50,
+                discussionTurns: (updatedIssues[currentIssueIndex].discussionTurns || 0) + 1
+            };
+            // 如果还有下一议题，自动推进
+            if (currentIssueIndex + 1 < issues.length) {
+                newCurrentIndex = currentIssueIndex + 1;
+            }
+        }
+
         const encoder = new TextEncoder();
         const readable = new ReadableStream({
             async start(controller) {
@@ -142,8 +193,15 @@ ${caseList}
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: text, done: false })}\n\n`));
                     }
 
-                    // 发送完成信号
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '', done: true })}\n\n`));
+                    // 发送议题状态更新
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                        content: '',
+                        done: true,
+                        state: {
+                            currentIssueIndex: newCurrentIndex,
+                            allIssues: updatedIssues,
+                        }
+                    })}\n\n`));
                     controller.close();
                 } catch (error) {
                     console.error('Stream error:', error);
@@ -161,9 +219,6 @@ ${caseList}
         });
     } catch (error) {
         console.error('Chat API Error:', error);
-        return NextResponse.json(
-            { error: '谈判对话处理失败，请稍后重试' },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: '谈判对话处理失败' }, { status: 500 });
     }
 }

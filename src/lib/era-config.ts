@@ -103,6 +103,23 @@ export const ERA_CONFIGS: EraConfig[] = [
     aggressionModifier: 5,
     formalityModifier: 0,
     flexibilityModifier: 0
+  },
+  {
+    id: 'future',
+    name: '未来时代',
+    shortName: '2050及以后',
+    description: '太空殖民、AI治理、气候变化重塑世界格局',
+    yearRange: '2050-2100',
+    characteristics: [
+      '多行星文明',
+      '强人工智能辅助决策',
+      '全球气候剧烈变化',
+      '资源冲突与太空开发竞速'
+    ],
+    typicalLanguageStyle: '科技化、多文明、长远主义',
+    aggressionModifier: 2,
+    formalityModifier: 4,
+    flexibilityModifier: 5,
   }
 ];
 

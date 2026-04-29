@@ -100,7 +100,15 @@ function generateSmartSuggestions(context: NegotiationContext, phase: string): Q
         `💡 **专业提示**:\n\n1. 注意对方的暗示和潜台词\n2. 适时提出交换条件\n3. 掌控谈判议程\n4. 为可能的僵局准备B方案`,
       analysis: '针对当前难度的策略提示'
     });
-    
+
+    suggestions.push({
+          id: 'summon-advisors',
+          label: '召集智囊团',
+          icon: <span className="text-base">🧠</span>,
+          response: '谈判陷入僵局时，点击谈判界面上的“🧠 召集智囊团”按钮。我会为你生成鹰派、鸽派、务实派三种策略方案，每种都包含话术建议、后果预估和历史案例参考，帮你做出最优决策。',
+          analysis: '引导用户使用智囊团功能'
+    });
+
     suggestions.push({
       id: 'attitude-check',
       label: '态度评估',
@@ -108,7 +116,7 @@ function generateSmartSuggestions(context: NegotiationContext, phase: string): Q
       response: `态度评估:\n\n😊 **你的态度**: ${getAttitudeLabel(context.userAttitude)}\n😐 **对方态度**: ${getAttitudeLabel(context.opponentAttitude)}\n\n${getAttitudeAdvice(context)}`,
       analysis: '双方态度对比分析'
     });
-    
+
     suggestions.push({
       id: 'risk-warning',
       label: '风险提示',

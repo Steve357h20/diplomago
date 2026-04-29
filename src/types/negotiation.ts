@@ -62,13 +62,14 @@ export interface PersonalityTraits {
 export type EraType = 'cold-war' | 'post-cold-war' | 'modern';
 
 // 扩展的历史时期类型（用于更精细的时代选择）
-export type HistoricalEra = 
-  | 'cold-war-early'      // 冷战初期 (1947-1962)
-  | 'cold-war-detente'    // 冷战缓和 (1962-1979)
-  | 'cold-war-late'       // 冷战后期 (1979-1991)
-  | 'post-cold-war'       // 后冷战 (1991-2008)
-  | 'post-2008'           // 后金融危机 (2008-2016)
-  | 'modern';             // 当代 (2016-现在)
+export type HistoricalEra =
+    | 'cold-war-early'      // 冷战初期 (1947-1962)
+    | 'cold-war-detente'    // 冷战缓和 (1962-1979)
+    | 'cold-war-late'       // 冷战后期 (1979-1991)
+    | 'post-cold-war'       // 后冷战 (1991-2008)
+    | 'post-2008'           // 后金融危机 (2008-2016)
+    | 'modern'              // 当代 (2016-现在)
+    | 'future';             // 未来（2050后）
 
 // 历史时期配置
 export interface EraConfig {
@@ -192,6 +193,8 @@ export interface Message {
   timestamp: number;
   sentiment?: SentimentData;
   strategyTags?: string[];
+  isPolished?: boolean;      // 是否经过AI润色
+  originalMessage?: string;  // 原始消息（如果润色过）
 }
 
 export interface SentimentData {
